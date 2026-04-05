@@ -59,6 +59,14 @@ def load_pages(root: Path) -> list[WikiPage]:
     return pages
 
 
+def display_relative(path: Path, wiki_root: Path) -> str:
+    base = wiki_root.parent
+    try:
+        return str(path.relative_to(base))
+    except ValueError:
+        return str(path)
+
+
 def build_report(root: Path) -> dict[str, object]:
     pages = load_pages(root)
     by_stem: dict[str, list[Path]] = defaultdict(list)
@@ -66,7 +74,7 @@ def build_report(root: Path) -> dict[str, object]:
         by_stem[page.stem].append(page.path)
 
     duplicate_stems = {
-        stem: [str(path.relative_to(repo_root())) for path in paths]
+        stem: [display_relative(path, root) for path in paths]
         for stem, paths in sorted(by_stem.items())
         if len(paths) > 1
     }
@@ -86,7 +94,7 @@ def build_report(root: Path) -> dict[str, object]:
             if target_path is None:
                 broken_links.append(
                     {
-                        "from": str(page.path.relative_to(repo_root())),
+                        "from": display_relative(page.path, root),
                         "target": target,
                     }
                 )
@@ -96,7 +104,7 @@ def build_report(root: Path) -> dict[str, object]:
 
     ignored_orphans = {"index", "log"}
     orphan_pages = [
-        str(page.path.relative_to(repo_root()))
+        display_relative(page.path, root)
         for page in pages
         if page.stem not in ignored_orphans and not incoming.get(page.stem)
     ]
@@ -104,7 +112,7 @@ def build_report(root: Path) -> dict[str, object]:
     ignored_no_outgoing = {"log"}
     low_link_pages = [
         {
-            "path": str(page.path.relative_to(repo_root())),
+            "path": display_relative(page.path, root),
             "outgoing_links": len(page.links),
         }
         for page in pages
@@ -112,7 +120,7 @@ def build_report(root: Path) -> dict[str, object]:
     ]
 
     missing_frontmatter = [
-        str(page.path.relative_to(repo_root()))
+        display_relative(page.path, root)
         for page in pages
         if not page.has_frontmatter
     ]
